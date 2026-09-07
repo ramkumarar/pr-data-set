@@ -1,0 +1,114 @@
+[
+  {
+    "pr_title": "Tighten up threading in snapshot finalization",
+    "url": "https://github.com/elastic/elasticsearch/pull/124403",
+    "comments": [
+      {
+        "comment": "The comment inaccurately implies network usage; update it to specify writing \"to the repository\" since operations may be local (e.g., `FsRepository`).",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "The SnapshotFinalization class comment lacks specificity regarding preparatory steps, the purpose of FinalizeSnapshotContext, and concrete examples of subsequent activities (e.g., snapshot completion or delete operations), reducing code clarity and developer understanding.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "The TODO comment incorrectly prescribes moving logic to `BlobStoreRepository#finalizeSnapshot` as a solution, but this approach may be unworkable due to implementation constraints.  \nReword the comment to concisely note the need for consolidation without specifying an invalid target.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "Skip iterating DISI when reading metric values",
+    "url": "https://github.com/elastic/elasticsearch/pull/133365",
+    "comments": [
+      {
+        "comment": "Duplicate conversion logic in SortableShortToHalfFloat.convert: the array conversion method directly invokes HalfFloatPoint.sortableShortToHalfFloat instead of reusing the single-element convert method.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "Test/add custom analyzer old versions",
+    "url": "https://github.com/elastic/elasticsearch/pull/119759",
+    "comments": [
+      {
+        "comment": "Constant `ES_VERSION_6` is incorrectly assigned the value `\"5\"` and documented for version 5, but should represent version 6 with value `\"6\"` and an accurate comment.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "The custom analyzer documentation section title incorrectly specifies version 5; it should reference version 6.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "Mandatory class name",
+    "url": "https://github.com/elastic/elasticsearch/pull/118626",
+    "comments": [
+      {
+        "comment": "The current implementation uses `lastIndexOf(\"$$\")` to determine the class name boundary, but it should instead use `lastIndexOf(\"$\")` followed by checking the preceding character to accurately determine static method status and avoid potential edge cases with dollar sign sequences.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "The `hasReceiver` field in `MethodKey` requires clarification and validation:  \n- Rename `hasReceiver` to `isInstance` to accurately reflect its role in identifying nonstatic (instance) methods.  \n- Remove the unused `hasReceiver` field as it constitutes dead code with no current references.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "Add ability to set \"max_analyzed_offset\" implicitly to \"index.highlight\"",
+    "url": "https://github.com/elastic/elasticsearch/pull/118895",
+    "comments": [
+      {
+        "comment": "The current validation condition for `maxAnalyzedOffset` incorrectly allows 0, which is invalid as highlighting zero characters is nonsensical and may cause undefined behavior. The condition should reject 0 while permitting -1 (special default) and positive integers.",
+        "severity": "Medium",
+        "category": "bug"
+      }
+    ]
+  },
+  {
+    "pr_title": "[DiskBBQ] Make centroid oversampling depend on the visit ratio",
+    "url": "https://github.com/elastic/elasticsearch/pull/133945",
+    "comments": [
+      {
+        "comment": "The CENTROID_OVERSAMPLING constant should dynamically use `centroidsPerParentCluster/2` for adaptive oversampling, but remains hardcoded to 8.0f.",
+        "severity": "Medium",
+        "category": "perf"
+      }
+    ]
+  },
+  {
+    "pr_title": "Set `keyUsage` for generated HTTP certificates and self-signed CA",
+    "url": "https://github.com/elastic/elasticsearch/pull/126376",
+    "comments": [
+      {
+        "comment": "Consider using `Map.ofEntries()` with explicit `Map.entry()` calls instead of `Map.of()` for improved readability of the multi-entry `KEY_USAGE_MAPPINGS` constant initialization.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "Key usage mapping constants in `CertGenUtils` are exclusively used in tests and should be relocated to a test utility class instead of residing in production code.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "The \"ca-keyusage\" command-line option should be renamed to \"keyusage\" as the \"ca-\" prefix is redundant since it's exclusively used in the `certutil ca` context.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "The `getCaKeyUsage` method incorrectly uses `value()` for `caKeyUsageSpec`, preventing multiple `--ca-keyusage` flags; it should use `values()` to properly handle repeated options like `--dns` and `--ip`.",
+        "severity": "Medium",
+        "category": "bug"
+      }
+    ]
+  }
+]

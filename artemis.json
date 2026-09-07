@@ -1,0 +1,304 @@
+[
+  {
+    "pr_title": "`Development`: Optimize slow database queries",
+    "url": "https://github.com/ls1intum/Artemis/pull/13252",
+    "comments": [
+      {
+        "comment": "findLatestSubmissionIdsByExerciseId selects the latest submission per participation by MAX(id) instead of MAX(submissionDate). A delayed build can create a fallback submission with an older buildRunDate but the newest ID, so the wrong submission is picked as latest. Order by submissionDate instead.",
+        "severity": "High",
+        "category": "bug"
+      },
+      {
+        "comment": "The versioning and quiz-statistics executors delegate to the same shared taskExecutor pool. Slow Git/versioning work can occupy the pool and starve quiz statistics tasks. Use dedicated executors with isolated bounds.",
+        "severity": "Medium",
+        "category": "concurrency"
+      },
+      {
+        "comment": "Making the quiz statistics executor single-threaded only serializes work within one JVM. In a multi-node deployment, concurrent updateStatistics calls from different nodes can still lose counter increments; the incremental update is not atomically safe across nodes.",
+        "severity": "Medium",
+        "category": "concurrency"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Performance`: Speed up slow statistics, dashboard, and grade-score database queries",
+    "url": "https://github.com/ls1intum/Artemis/pull/13274",
+    "comments": [
+      {
+        "comment": "The submission anti-joins use '<' / '>' comparisons against submissionDate without guarding nulls. When the outer submissionDate is null, every comparison is unknown, so the anti-join can pick the wrong latest submission. Add 'submissionDate IS NOT NULL' predicates.",
+        "severity": "High",
+        "category": "bug"
+      },
+      {
+        "comment": "Filtering directly on r.exerciseId instead of the old r.submission.participation.exercise path now counts example results, because example submissions have no participation. The predicates must also exclude example results (e.g. 'r.exampleResult IS NULL OR r.exampleResult = FALSE') to preserve the previous behavior.",
+        "severity": "High",
+        "category": "bug"
+      },
+      {
+        "comment": "The 'Test user' column is rendered in course and tutorial-group import dialogs, but only the admin import path persists isTestUser; the other endpoints ignore the flag, so instructors see a checked flag that is never stored. Gate the column on admin import mode.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "The Javadoc above the active-user query still says users are excluded when their login contains 'test', but the query now uses the explicitly managed isTestUser flag. Update the documentation so callers do not rely on the login heuristic.",
+        "severity": "Low",
+        "category": "doc_defect"
+      },
+      {
+        "comment": "The Javadoc for findAllByIdInWithEagerFeedbacksAndAssessor references a method that does not exist; the actual hydration query has a different name. Point the documentation at the real method.",
+        "severity": "Low",
+        "category": "doc_defect"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Add exercise id to result table to speed up database queries",
+    "url": "https://github.com/ls1intum/Artemis/pull/11459",
+    "comments": [
+      {
+        "comment": "The new result.exercise_id column is added nullable and without a foreign key constraint. Null values are needed only because the Java-based migration runs before the data is cleaned up. Prefer a SQL-only Liquibase migration plus a non-null constraint and FK after removing orphan results (results without a submission/participation chain).",
+        "severity": "Medium",
+        "category": "data"
+      },
+      {
+        "comment": "findResultById with 'LEFT JOIN FETCH r.assessor' on a single-id lookup looks accidental: fetching one result by id does not need a fetch join. Either the query is wrong or the fetch is dead weight.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "Several new repository methods accepting Set<Long> exerciseIds have no Javadoc, and the parameter documentation still refers to a 'course courseId' instead of the new exerciseIds. Document the new contract, especially the empty-set behavior.",
+        "severity": "Low",
+        "category": "doc_defect"
+      },
+      {
+        "comment": "The log message still references the old method name countByComplaint_Result_Submission_Participation... after the query was renamed to countComplaintsByExerciseIds; update it or it will mislead production debugging.",
+        "severity": "Low",
+        "category": "doc_defect"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Speed up the slowest production database queries",
+    "url": "https://github.com/ls1intum/Artemis/pull/13526",
+    "comments": [
+      {
+        "comment": "findAllTestUserIds() loads every test user id into memory and the test-user filtering is applied in Java instead of in the SQL predicate. On large instances this defeats the query optimization; consider inlining the predicate in the aggregate queries instead.",
+        "severity": "Medium",
+        "category": "perf"
+      },
+      {
+        "comment": "The denormalized complaint.exerciseId is used to replace the join through submission -> participation -> exercise. Without backfill validation the column can diverge from the relationship it mirrors; ensure the denormalization is kept in sync (e.g. in the same write path that sets the result).",
+        "severity": "Medium",
+        "category": "data"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Avoid database queries with pagination and left join fetch",
+    "url": "https://github.com/ls1intum/Artemis/pull/8741",
+    "comments": [
+      {
+        "comment": "The split into an id-only query plus a second 'with data' fetch adds an extra round-trip per page. A paged JOIN FETCH is possible when the fetched collection is limited (or via subquery), so verify that the split is actually required instead of applying it uniformly.",
+        "severity": "Medium",
+        "category": "perf"
+      },
+      {
+        "comment": "findOneByIdElseThrow uses findAll under the hood (setResultSize(2)) which can be misleading: the naming suggests a single-entity fetch but it performs a limited multi-result query. Rename or document the behavior, and if only an existence check is needed, use a boolean/ID-only query.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "Naming of the new split methods (e.g. findAllWithData / findWithDataByIdIn) is inconsistent and 'Associations' does not state which associations are loaded. Use names that expose the loaded graph (e.g. findWithDataByIdIn).",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Improve performance for slow database queries",
+    "url": "https://github.com/ls1intum/Artemis/pull/11896",
+    "comments": [
+      {
+        "comment": "The @EntityGraph with result.submission.participation / result.submission / result.assessor is removed from the result queries. Callers that previously relied on the eager graph now trigger lazy-loading N+1 selects when touching those relations; verify each caller still loads what it needs.",
+        "severity": "Medium",
+        "category": "perf"
+      },
+      {
+        "comment": "The new denormalized result.exerciseId filtering assumes the column is always populated. Results created before the backfill (or without a participation chain) fall out of counts; ensure the migration backfills all existing rows before the queries rely on the column.",
+        "severity": "Medium",
+        "category": "data"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Refactor transactional programming exercise creation",
+    "url": "https://github.com/ls1intum/Artemis/pull/7451",
+    "comments": [
+      {
+        "comment": "The doInTransaction callback catches exceptions, logs them, and does not rethrow, so TransactionTemplate treats the unit as successful and commits even though repository creation failed - rollback is never triggered. Rethrow a RuntimeException (e.g. wrap the GitApiException in a dedicated exception type) so the transaction rolls back.",
+        "severity": "High",
+        "category": "bug"
+      },
+      {
+        "comment": "createRepositoriesForNewExercise performs Git/VCS repository creation (network IO) inside the DB transaction. The transaction stays open for the whole long-running creation including webhooks, build plans and scheduling. Narrow the transactional scope to the DB-only steps and keep external work outside the transaction.",
+        "severity": "Medium",
+        "category": "perf"
+      },
+      {
+        "comment": "The programmatic transactionTemplate pattern hides the transaction boundary from readers. Prefer @Transactional on a dedicated method (or an extracted service) so the transactional scope is explicit and stays as small as possible.",
+        "severity": "Medium",
+        "category": "style"
+      },
+      {
+        "comment": "saveForCreation does saveAndFlush followed by findForCreationByIdElseThrow - saving and immediately reloading the same exercise duplicates the write. Either use the returned entity or document precisely why the reload (Hibernate proxy references) is necessary.",
+        "severity": "Low",
+        "category": "perf"
+      }
+    ]
+  },
+  {
+    "pr_title": "Hotfix/Remove transactional annotation from resource that causes null pointer on user groups",
+    "url": "https://github.com/ls1intum/Artemis/pull/678",
+    "comments": [
+      {
+        "comment": "Removing @Transactional(readOnly = true) from getAllTextSubmissions means lazy associations accessed during DTO mapping (e.g. user groups) now run outside a session, risking LazyInitializationException/NPE. Ensure all lazy relations are initialized inside the query (EntityGraph) before dropping the transaction.",
+        "severity": "Medium",
+        "category": "bug"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Remove unnecessary transactional annotations in delete operations",
+    "url": "https://github.com/ls1intum/Artemis/pull/5814",
+    "comments": [
+      {
+        "comment": "Derived delete methods like deleteByResult_Id require an active transaction in Spring Data JPA. Removing @Transactional from the service methods that call them can throw TransactionRequiredException; keep the transaction where derived deletes execute or convert them to @Modifying @Query.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "The inline comment '@Transactional // ok because of delete' is confusing - it should explain that Spring Data derived deletes need a transaction, not just 'ok because of delete'.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Remove the transactional scope from programming exercise import",
+    "url": "https://github.com/ls1intum/Artemis/pull/13279",
+    "comments": [
+      {
+        "comment": "Without an enclosing transaction, importProgrammingExerciseBasis persists the build config, submission policy, grading criteria and participations in separate commits before the exercise itself is saved. A failure midway leaves orphaned/partial import state with no rollback; consider a single transaction for the DB writes or compensating cleanup.",
+        "severity": "Medium",
+        "category": "data"
+      },
+      {
+        "comment": "The removed @Transactional was annotated with 'IMPORTANT: the transactional context only works if you invoke this method from another class' (self-invocation). The refactor resolves the invocation problem, but the new per-step saves should document the consistency guarantee - or the lack of one.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Fix a race condition when concurrently creating competency progress",
+    "url": "https://github.com/ls1intum/Artemis/pull/13206",
+    "comments": [
+      {
+        "comment": "The conflict-recovery path writes back the progress/confidence values calculated before the unique-constraint race was detected. If one update calculated 50% and a concurrent update calculated 70%, the loser can overwrite the winner with stale data. Recompute the values from the current DB state before applying the recovery update.",
+        "severity": "High",
+        "category": "concurrency"
+      },
+      {
+        "comment": "Re-fetch + save() on a detached entity can re-insert or resurrect a row that was deleted between fetch and save. Use a targeted bulk UPDATE (with optimistic conditions) or merge semantics instead of save() on a detached entity.",
+        "severity": "Medium",
+        "category": "bug"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Communication`: Stop a late unread increment from resurrecting a read message",
+    "url": "https://github.com/ls1intum/Artemis/pull/13413",
+    "comments": [
+      {
+        "comment": "'lastRead > messageDate' does not prove the recipient's GET actually returned this message: Post.creationDate is assigned before save/commit, so a message can be treated as read even if it was never delivered to the recipient. The guard is unsound.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "conversationMessageRepository.save commits in its own transaction before the unread-count increment runs in an independent transaction; a concurrent GET can schedule another increment between the two, resurrecting an already-read message. Run the insert and the increment in one transaction.",
+        "severity": "Medium",
+        "category": "concurrency"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Integrated code lifecycle`: Fix race condition in docker container setup commands",
+    "url": "https://github.com/ls1intum/Artemis/pull/12151",
+    "comments": [
+      {
+        "comment": "Two concurrent container setup commands can both observe that the checkout path is missing and run detached setup (withDetach(true)) on the same path, leaving inconsistent container state. Ensure the directory is created atomically before any detached-mode command runs.",
+        "severity": "Medium",
+        "category": "concurrency"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Improve path validation in the local VC service",
+    "url": "https://github.com/ls1intum/Artemis/pull/12965",
+    "comments": [
+      {
+        "comment": "The containment guard allows project keys that normalize back to the base directory or to another directory inside the base path (e.g. 'ABC/..' or 'x/../../evil') - a startsWith check on the raw path is bypassed by '..' segments. Use Path.normalize() and reject paths that normalize to the base path itself.",
+        "severity": "High",
+        "category": "security"
+      },
+      {
+        "comment": "Tests only cover traversal that escapes the base directory. Add coverage for inputs that normalize back into the base path ('ABC/..') or traverse within it ('x/../../evil') so the containment guard is actually verified.",
+        "severity": "Medium",
+        "category": "test_gap"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Improve input validation for URLs, paths, and regex patterns",
+    "url": "https://github.com/ls1intum/Artemis/pull/12185",
+    "comments": [
+      {
+        "comment": "The URL validation blocks IPv4-mapped addresses but IPv4-compatible IPv6 addresses (e.g. '::<ipv4>') bypass the check. Handle the IPv4-compatible form explicitly before accepting the URL.",
+        "severity": "Medium",
+        "category": "security"
+      },
+      {
+        "comment": "Path validation relies on an existence check plus startsWith. Verify the resolved repository path against the real base path via toRealPath() to defeat symlinks and '..' segments that survive normalization.",
+        "severity": "Medium",
+        "category": "security"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Improve path validation order in drag-and-drop file import",
+    "url": "https://github.com/ls1intum/Artemis/pull/12384",
+    "comments": [
+      {
+        "comment": "Files.exists() runs before the containment check (Path.normalize().startsWith(basePath.normalize())). A crafted path can reach the filesystem call before validation; perform the normalized containment check first, as CodeQL expects.",
+        "severity": "Medium",
+        "category": "security"
+      }
+    ]
+  },
+  {
+    "pr_title": "`Development`: Migrate exam students view to server-side pagination, sorting, and searching",
+    "url": "https://github.com/ls1intum/Artemis/pull/12701",
+    "comments": [
+      {
+        "comment": "The search term and sort column come from the frontend and are interpolated into the query. The implementation assumes the input is already properly escaped - escape LIKE wildcards (%/_) and backslash with ESCAPE '\\', and whitelist the ORDER BY column so users cannot inject wildcards or control sorting.",
+        "severity": "Medium",
+        "category": "security"
+      },
+      {
+        "comment": "This query is quite costly. Server-side pagination with a correlated subquery for workingTime ordering could become a bottleneck for universities with many users; verify the query plan and supporting indexes before shipping.",
+        "severity": "Medium",
+        "category": "perf"
+      }
+    ]
+  }
+]

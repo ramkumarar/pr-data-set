@@ -1,0 +1,49 @@
+[
+  {
+    "pr_title": "KOGITO-3407 CloudEvent Kafka Publisher+Emitter (Spring Boot)",
+    "url": "https://github.com/apache/incubator-kie-kogito-runtimes/pull/839",
+    "comments": [
+      {
+        "comment": "The producer ignores the send result: emitter.send(...).completable().thenApply(r -> null) discards both the result and any exception. A failed Kafka send (broker down, missing topic) is silently swallowed and the caller believes the event was published. Check the result and log the error (KOGITO-3408 was filed for proper error handling but the TODO was removed without a fix).",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "The consumer auto-acks received messages regardless of processing outcome. The reviewer asked for the flexibility to let the consumer ack only after successful computation and not ack on failure (e.g. manual AckMode with an Acknowledgment), otherwise failed processing is silently lost.",
+        "severity": "Medium",
+        "category": "concurrency"
+      },
+      {
+        "comment": "The consumer factory only exposes bootstrap-servers and group-id. Kafka consumers support many more configurable properties (auto.offset.reset, deserializers, etc.); hardcoding this subset limits what users can tweak. Map the standard spring.kafka.consumer.* properties or document the limitation.",
+        "severity": "Medium",
+        "category": "api"
+      },
+      {
+        "comment": "The topic name 'kogito_outgoing_stream' should be centralized in a constant (KogitoEventStreams.OUTGOING) instead of being repeated across classes, so it can be changed in one place.",
+        "severity": "Low",
+        "category": "style"
+      }
+    ]
+  },
+  {
+    "pr_title": "[KOGITO-7857] CloudEvent sdk refactor",
+    "url": "https://github.com/apache/incubator-kie-kogito-runtimes/pull/2505",
+    "comments": [
+      {
+        "comment": "process.id() is called without first verifying the type of the info object - SONAR flagged this. Guard the call so id() is only invoked when the info is of the expected type, otherwise the code risks an NPE or ClassCastException at runtime.",
+        "severity": "Medium",
+        "category": "bug"
+      },
+      {
+        "comment": "Leftover/dead code was found during review ('this is a leftover, good catch!!!') - remove it rather than shipping it with the refactor.",
+        "severity": "Low",
+        "category": "style"
+      },
+      {
+        "comment": "The refactor drops the more detailed error message in the exception. Preserve the original message when wrapping/converting the exception so failures stay debuggable.",
+        "severity": "Low",
+        "category": "bug"
+      }
+    ]
+  }
+]
