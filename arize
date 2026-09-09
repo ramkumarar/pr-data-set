@@ -1,0 +1,11 @@
+https://github.com/kenn-io/agentsview/releases
+uvx arize-phoenix serve
+
+
+uv venv ~/.arize/harness/venv --seed && \
+  bash <(curl -fsSL https://raw.githubusercontent.com/Arize-ai/coding-harness-tracing/main/install.sh) kiro
+  
+  uvx arize-phoenix serve &>/tmp/phoenix.log &
+  
+  kiro-cli chat --v3 --agent arize-traced
+  PHOENIX_ENDPOINT=http://localhost:6006
