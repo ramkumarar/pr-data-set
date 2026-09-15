@@ -1,0 +1,77 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e1f5ff','primaryTextColor':'#000','primaryBorderColor':'#0288d1','lineColor':'#0288d1','secondaryColor':'#fff3e0','tertiaryColor':'#f1f8e9','noteBkgColor':'#fff3e0','noteTextColor':'#000'}}}%%
+
+flowchart TD
+    %% Starting Point
+    START([Extra Credit Eligibility Assessment])
+    START --> R
+    
+    %% Main Decision Point
+    R{Who is asking<br/>for extra credit?}
+    
+    %% ========================================
+    %% ENGINEER PATH
+    %% ========================================
+    R -->|👨‍💻 Engineer| ROLE{Software Engineer /<br/>Test Automation Engineer /<br/>Production Support Engineer /<br/>Principal Engineer?}
+    
+    %% Principal Engineer Branch
+    ROLE -->|🎯 Principal<br/>Engineer| PE{Working across<br/>multiple applications<br/>in a product area,<br/>collaborating and<br/>enforcing standards?}
+    PE -->|✅ Yes| Y
+    PE -->|❌ No| N
+    
+    %% Software Engineer Branch - Sequential OR Waterfall
+    ROLE -->|💻 Software Engineer<br/>Test Automation Engineer| E1{1️⃣ SDD adopted<br/>across team on<br/>strategic outcome?}
+    E1 -->|✅ Yes| Y
+    E1 -->|❌ No| E2{2️⃣ Leading focused<br/>legacy modernisation<br/>for technical debt?}
+    E2 -->|✅ Yes| Y
+    E2 -->|❌ No| E3{3️⃣ Addressing tech debt<br/>prioritised by<br/>Principal Engineer?}
+    E3 -->|✅ Yes| Y
+    E3 -->|❌ No| E4{4️⃣ Building reusable<br/>components aligned to<br/>strategic objectives?}
+    E4 -->|✅ Yes| Y
+    E4 -->|❌ No| N
+    
+    %% Production Support Engineer Branch
+    ROLE -->|🔧 Production<br/>Support Engineer| P1{Onboarding applications<br/>to Modern Observability<br/>platforms?}
+    P1 -->|❌ No| N
+    P1 -->|✅ Yes| P2{Building, proving,<br/>onboarding reusable<br/>observability tooling<br/>aligning to bank's<br/>strategic observability?}
+    P2 -->|✅ Yes| Y
+    P2 -->|❌ No| N
+    
+    %% ========================================
+    %% ARCHITECT OR BA PATH
+    %% ========================================
+    R -->|🏗️ Architect<br/>or BA| AB{On a strategic<br/>programme<br/>following SDD?}
+    AB -->|❌ No| N
+    AB -->|✅ Yes| Y
+    
+    %% ========================================
+    %% SIG MEMBER PATH
+    %% ========================================
+    R -->|🔬 SIG<br/>member| S{In a SIG or aligned<br/>to Proof of Value exercise?<br/><br/>Evaluating & sharing outcomes<br/>on agentic tooling}
+    S -->|❌ No| N
+    S -->|✅ Yes| Y
+    
+    %% ========================================
+    %% ANY OTHER ROLE PATH
+    %% ========================================
+    R -->|👤 Any other<br/>role| N
+    
+    %% ========================================
+    %% FINAL OUTCOMES
+    %% ========================================
+    Y[/✨ <b>ELIGIBLE</b><br/>for Extra Credit ✨\]
+    N[/⭕ <b>NOT ELIGIBLE</b><br/>Default Tier\]
+    
+    %% ========================================
+    %% STYLING
+    %% ========================================
+    classDef eligible fill:#4caf50,stroke:#2e7d32,stroke-width:3px,color:#fff,font-weight:bold
+    classDef notEligible fill:#ff5722,stroke:#d84315,stroke-width:3px,color:#fff,font-weight:bold
+    classDef decision fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#000
+    classDef roleDecision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef start fill:#0288d1,stroke:#01579b,stroke-width:3px,color:#fff,font-weight:bold
+    
+    class Y eligible
+    class N notEligible
+    class R,PE,E1,E2,E3,E4,P1,P2,AB,S decision
+    class ROLE roleDecision
+    class START start
